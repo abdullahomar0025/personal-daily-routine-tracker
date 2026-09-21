@@ -10,6 +10,17 @@ function newest(localValue, remoteValue) {
   return clone(remoteTime > localTime ? remoteValue : localValue);
 }
 
+export function prepareLocalForCloud(store = {}, timestamp = new Date().toISOString()) {
+  const prepared = clone(store) || {};
+  for (const day of Object.values(prepared.history || {})) {
+    for (const task of Object.values(day || {})) {
+      const changed = Boolean(task?.completed) || Number(task?.actual || 0) > 0;
+      if (changed && !task.updatedAt) task.updatedAt = timestamp;
+    }
+  }
+  return prepared;
+}
+
 export function mergeStores(localStore = {}, remoteStore = {}) {
   const localHistory = localStore.history || {};
   const remoteHistory = remoteStore.history || {};
