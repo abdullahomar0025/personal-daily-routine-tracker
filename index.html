@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6957e8">
+  <link rel="icon" href="data:,">
+  <title>আমার Daily Routine</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">✓</div>
+        <div><p class="eyebrow">PERSONAL TRACKER</p><h1>আমার Daily Routine</h1></div>
+      </div>
+      <div class="top-actions">
+        <label class="date-control"><span>তারিখ</span><input id="datePicker" type="date" min="2026-09-21" max="2026-12-31"></label>
+        <button id="themeButton" class="icon-button" type="button" aria-label="থিম পরিবর্তন">☾</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="মূল নেভিগেশন">
+      <button class="tab active" data-view="dashboard">ড্যাশবোর্ড</button>
+      <button class="tab" data-view="history">হিস্ট্রি</button>
+      <button class="tab" data-view="analysis">অ্যানালাইসিস</button>
+    </nav>
+
+    <main>
+      <section id="dashboardView" class="view active">
+        <div class="welcome-row">
+          <div><p id="selectedDayLabel" class="eyebrow"></p><h2>আজকের লক্ষ্য, এক ধাপ করে ✨</h2><p class="muted">ছোট ছোট কাজই বড় ধারাবাহিকতা তৈরি করে।</p></div>
+          <div class="range-pill">২১ সেপ্টেম্বর — ৩১ ডিসেম্বর ২০২৬</div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card highlight"><div class="ring" id="progressRing"><strong id="completionPercent">0%</strong></div><div><span>Today's Progress</span><b id="progressMessage">শুরু করা যাক</b></div></article>
+          <article class="stat-card"><i class="dot success"></i><div><span>সম্পন্ন</span><b id="completedCount">0</b></div></article>
+          <article class="stat-card"><i class="dot warning"></i><div><span>বাকি</span><b id="incompleteCount">9</b></div></article>
+          <article class="stat-card"><i class="flame">🔥</i><div><span>Current streak</span><b><span id="streakCount">0</span> দিন</b></div></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel tasks-panel">
+            <div class="panel-heading"><div><p class="eyebrow">DAILY PLAN</p><h3>আজকের Tasks</h3></div><span id="taskSummary" class="badge">০/৯ সম্পন্ন</span></div>
+            <div id="taskList" class="task-list"></div>
+          </section>
+
+          <aside class="side-stack">
+            <section class="panel">
+              <div class="panel-heading"><div><p class="eyebrow">LAST 7 DAYS</p><h3>Weekly Performance</h3></div><b id="weeklyRate">0%</b></div>
+              <div id="weeklyChart" class="weekly-chart"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading"><div><p class="eyebrow">QUICK NAVIGATION</p><h3>ক্যালেন্ডার</h3></div></div>
+              <div id="calendar" class="calendar"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading"><div><p class="eyebrow">LATEST</p><h3>Recent Activity</h3></div></div>
+              <div id="activityList" class="activity-list"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="historyView" class="view">
+        <div class="section-title"><div><p class="eyebrow">DAILY RECORDS</p><h2>রুটিন হিস্ট্রি</h2></div><div class="summary-chip"><b id="trackedDays">0</b><span>দিন ট্র্যাক করা হয়েছে</span></div></div>
+        <div id="historyList" class="history-list panel"></div>
+      </section>
+
+      <section id="analysisView" class="view">
+        <div class="section-title"><div><p class="eyebrow">INSIGHTS</p><h2>Performance Analysis</h2></div></div>
+        <div id="analysisSummary" class="analysis-summary"></div>
+        <div class="analysis-layout">
+          <section class="panel"><div class="panel-heading"><h3>Task Completion Rate</h3></div><div id="taskRates" class="rate-list"></div></section>
+          <section class="panel"><div class="panel-heading"><h3>News Target Completion</h3></div><div id="quantityRates" class="rate-list"></div></section>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>ডেটা এই ব্রাউজারেই নিরাপদে সংরক্ষিত থাকে।</span><button id="exportButton" type="button">Backup export</button><label class="import-label">Backup import<input id="importInput" type="file" accept="application/json"></label></footer>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
