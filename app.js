@@ -2,7 +2,7 @@ import {
   START_DATE, END_DATE, ROUTINE, isRoutineDate, blankDay, updateQuantity,
   toggleTask, dayProgress, currentStreak, analyseHistory, datesInRange,
 } from './tracker.mjs';
-import { mergeStores } from './sync-core.mjs';
+import { mergeStores, prepareLocalForCloud } from './sync-core.mjs';
 import {
   cloudAvailable, currentUser, signIn, signUp, signOut, pullAndMerge,
   pushStore, schedulePush, subscribeToRemote,
@@ -274,6 +274,7 @@ async function activateCloud(user) {
   cloudUser = user;
   updateAuthPanel();
   setSyncStatus('syncing');
+  store = prepareLocalForCloud(store);
   const merged = await pullAndMerge(store, user.id);
   applyingRemote = true;
   store = merged;
