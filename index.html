@@ -16,6 +16,7 @@
         <div><p class="eyebrow">PERSONAL TRACKER</p><h1>আমার Daily Routine</h1></div>
       </div>
       <div class="top-actions">
+        <button id="syncButton" class="sync-button local" type="button"><span class="sync-dot"></span><span id="syncLabel">এই ডিভাইসে সেভ হচ্ছে</span></button>
         <label class="date-control"><span>তারিখ</span><input id="datePicker" type="date" min="2026-09-21" max="2026-12-31"></label>
         <button id="themeButton" class="icon-button" type="button" aria-label="থিম পরিবর্তন">☾</button>
       </div>
@@ -79,8 +80,31 @@
       </section>
     </main>
 
-    <footer><span>ডেটা এই ব্রাউজারেই নিরাপদে সংরক্ষিত থাকে।</span><button id="exportButton" type="button">Backup export</button><label class="import-label">Backup import<input id="importInput" type="file" accept="application/json"></label></footer>
+    <footer><span>Local backup সবসময় থাকে; login করলে encrypted connection-এ cloud sync হয়।</span><button id="exportButton" type="button">Backup export</button><label class="import-label">Backup import<input id="importInput" type="file" accept="application/json"></label></footer>
   </div>
+
+  <div id="authModal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button id="closeAuth" class="modal-close" type="button" aria-label="বন্ধ করুন">×</button>
+      <div class="cloud-icon">☁️</div>
+      <p class="eyebrow">SECURE CLOUD SYNC</p>
+      <h2 id="authTitle">সব ডিভাইসে একই ডেটা</h2>
+      <p class="muted auth-copy">একই account দিয়ে login করলে ফোন, কম্পিউটার ও আলাদা browser-এ আপনার routine data স্বয়ংক্রিয়ভাবে sync হবে।</p>
+      <div id="signedOutPanel">
+        <label class="auth-field"><span>Email</span><input id="authEmail" type="email" autocomplete="email" placeholder="your@email.com"></label>
+        <label class="auth-field"><span>Password</span><input id="authPassword" type="password" minlength="8" autocomplete="current-password" placeholder="কমপক্ষে ৮ অক্ষর"></label>
+        <p id="authMessage" class="auth-message"></p>
+        <div class="auth-actions"><button id="signInButton" class="primary-button" type="button">Login ও Sync</button><button id="signUpButton" class="secondary-button" type="button">নতুন account</button></div>
+      </div>
+      <div id="signedInPanel" hidden>
+        <div class="signed-user"><span>✓</span><div><small>Sync account</small><strong id="signedInEmail"></strong></div></div>
+        <p class="muted">Cloud sync চালু আছে। এই device-এর পুরোনো local data-ও cloud-এর সঙ্গে merge হয়েছে।</p>
+        <button id="signOutButton" class="secondary-button full" type="button">Logout</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="sync-config.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

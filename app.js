@@ -2,6 +2,11 @@ import {
   START_DATE, END_DATE, ROUTINE, isRoutineDate, blankDay, updateQuantity,
   toggleTask, dayProgress, currentStreak, analyseHistory, datesInRange,
 } from './tracker.mjs';
+import { mergeStores } from './sync-core.mjs';
+import {
+  cloudAvailable, currentUser, signIn, signUp, signOut, pullAndMerge,
+  pushStore, schedulePush, subscribeToRemote,
+} from './cloud-sync.mjs';
 
 const STORAGE_KEY = 'personal-routine-tracker-v1';
 const $ = id => document.getElementById(id);
@@ -10,6 +15,8 @@ const dateFmt = new Intl.DateTimeFormat('bn-BD', { weekday: 'long', day: 'numeri
 const shortFmt = new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'short' });
 let store = loadStore();
 let selectedDate = defaultDate();
+let cloudUser = null;
+let applyingRemote = false;
 
 function loadStore() {
   try {
@@ -22,6 +29,7 @@ function loadStore() {
 
 function saveStore() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  if (cloudUser && !applyingRemote) schedulePush(store, cloudUser.id, setSyncStatus);
 }
 
 function defaultDate() {
@@ -81,12 +89,14 @@ function renderTasks() {
     const checkbox = card.querySelector('.check');
     checkbox.addEventListener('change', () => {
       const next = toggleTask(getDay(), task.id);
+      next[task.id].updatedAt = new Date().toISOString();
       commitDay(next, `${task.name}: ${next[task.id].completed ? 'সম্পন্ন' : 'বাকি'}`);
     });
     if (task.quantity) {
       const input = card.querySelector('input[type=number]');
       const apply = valueToSet => {
         const next = updateQuantity(getDay(), task.id, valueToSet);
+        next[task.id].updatedAt = new Date().toISOString();
         commitDay(next, `${task.name}: ${next[task.id].actual}/${task.target}`);
       };
       input.addEventListener('change', () => apply(input.value));
@@ -223,7 +233,131 @@ function toast(message) {
   setTimeout(() => node.remove(), 2200);
 }
 
+function setSyncStatus(state = 'local') {
+  const button = $('syncButton');
+  button.className = `sync-button ${state}`;
+  const labels = {
+    local: 'এই ডিভাইসে সেভ হচ্ছে',
+    syncing: 'Cloud-এ sync হচ্ছে…',
+    synced: 'সব ডিভাইসে synced',
+    error: 'Sync সমস্যা—আবার চেষ্টা করুন',
+  };
+  $('syncLabel').textContent = labels[state] || labels.local;
+}
+
+function setAuthMessage(message = '', success = false) {
+  $('authMessage').textContent = message;
+  $('authMessage').classList.toggle('success', success);
+}
+
+function updateAuthPanel() {
+  const signedIn = Boolean(cloudUser);
+  $('signedOutPanel').hidden = signedIn;
+  $('signedInPanel').hidden = !signedIn;
+  $('signedInEmail').textContent = cloudUser?.email || '';
+}
+
+function openAuthModal() {
+  updateAuthPanel();
+  setAuthMessage();
+  $('authModal').hidden = false;
+  if (!cloudUser) $('authEmail').focus();
+}
+
+function closeAuthModal() {
+  $('authModal').hidden = true;
+  $('authPassword').value = '';
+}
+
+async function activateCloud(user) {
+  if (!user) return;
+  cloudUser = user;
+  updateAuthPanel();
+  setSyncStatus('syncing');
+  const merged = await pullAndMerge(store, user.id);
+  applyingRemote = true;
+  store = merged;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  applyingRemote = false;
+  document.body.classList.toggle('dark', store.theme === 'dark');
+  $('themeButton').textContent = store.theme === 'dark' ? '☀' : '☾';
+  renderAll();
+  await pushStore(store, user.id);
+  await subscribeToRemote(user.id, remoteStore => {
+    const mergedRemote = mergeStores(store, remoteStore);
+    if (JSON.stringify(mergedRemote) === JSON.stringify(store)) return;
+    applyingRemote = true;
+    store = mergedRemote;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    applyingRemote = false;
+    renderAll();
+    setSyncStatus('synced');
+  }, setSyncStatus);
+  setSyncStatus('synced');
+}
+
+async function initCloud() {
+  if (!cloudAvailable) {
+    setSyncStatus('error');
+    return;
+  }
+  try {
+    const user = await currentUser();
+    if (user) await activateCloud(user);
+    else setSyncStatus('local');
+  } catch (error) {
+    console.error('Cloud initialization failed', error);
+    setSyncStatus('error');
+  }
+}
+
+async function submitAuth(mode) {
+  const email = $('authEmail').value.trim();
+  const password = $('authPassword').value;
+  if (!email || !email.includes('@')) return setAuthMessage('সঠিক email লিখুন।');
+  if (password.length < 8) return setAuthMessage('Password কমপক্ষে ৮ অক্ষরের হতে হবে।');
+  setAuthMessage(mode === 'signin' ? 'Login হচ্ছে…' : 'Account তৈরি হচ্ছে…', true);
+  try {
+    if (mode === 'signin') {
+      const user = await signIn(email, password);
+      await activateCloud(user);
+      closeAuthModal();
+      toast('Cloud sync চালু হয়েছে');
+    } else {
+      const data = await signUp(email, password);
+      if (data.session?.user) {
+        await activateCloud(data.session.user);
+        closeAuthModal();
+        toast('Account ও cloud sync চালু হয়েছে');
+      } else {
+        setAuthMessage('আপনার email inbox থেকে confirmation link খুলুন, তারপর এখানে Login করুন।', true);
+      }
+    }
+  } catch (error) {
+    setAuthMessage(error?.message || 'Login করা যায়নি। আবার চেষ্টা করুন।');
+    setSyncStatus('error');
+  }
+}
+
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showView(tab.dataset.view)));
+$('syncButton').addEventListener('click', openAuthModal);
+$('closeAuth').addEventListener('click', closeAuthModal);
+$('authModal').addEventListener('click', event => { if (event.target === $('authModal')) closeAuthModal(); });
+$('signInButton').addEventListener('click', () => submitAuth('signin'));
+$('signUpButton').addEventListener('click', () => submitAuth('signup'));
+$('authPassword').addEventListener('keydown', event => { if (event.key === 'Enter') submitAuth('signin'); });
+$('signOutButton').addEventListener('click', async () => {
+  try {
+    await signOut();
+    cloudUser = null;
+    updateAuthPanel();
+    closeAuthModal();
+    setSyncStatus('local');
+    toast('Logout হয়েছে; local data রাখা হয়েছে');
+  } catch (error) {
+    setAuthMessage(error?.message || 'Logout করা যায়নি।');
+  }
+});
 $('datePicker').addEventListener('change', event => setDate(event.target.value));
 $('themeButton').addEventListener('click', () => {
   store.theme = store.theme === 'dark' ? 'light' : 'dark';
@@ -259,3 +393,4 @@ document.body.classList.toggle('dark', store.theme === 'dark');
 $('themeButton').textContent = store.theme === 'dark' ? '☀' : '☾';
 $('datePicker').value = selectedDate;
 renderAll();
+initCloud();
